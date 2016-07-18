@@ -1,12 +1,18 @@
 package com.framgia.binhnguyen.weatherforecast.data.models;
 
+import com.google.gson.annotations.SerializedName;
+
 /**
  * Created by binh on 7/6/16.
  */
 public class Alert {
+    @SerializedName("title")
     private String mTitle;
+    @SerializedName("expires")
     private long mExpires;
+    @SerializedName("description")
     private String mDescription;
+    @SerializedName("uri")
     private String mUri;
 
     public String getTitle() {

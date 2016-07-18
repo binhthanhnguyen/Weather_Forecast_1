@@ -1,29 +1,52 @@
 package com.framgia.binhnguyen.weatherforecast.data.models;
 
+import com.google.gson.annotations.SerializedName;
+
 /**
  * Created by binh on 7/6/16.
  */
 public class DataPoint {
+    @SerializedName("time")
     private long mTime;
+    @SerializedName("summary")
     private String mSummary;
+    @SerializedName("icon")
     private String mIcon;
+    @SerializedName("sunriseTime")
     private String mSunriseTime;
+    @SerializedName("sunsetTime")
     private String mSunsetTime;
+    @SerializedName("nearestStormDistance")
     private String mNearestStormDistance;
+    @SerializedName("NearestStormBearing")
     private String mNearestStormBearing;
+    @SerializedName("precipIntensity")
     private String mPrecipIntensity;
+    @SerializedName("temperature")
     private double mTemperature;
+    @SerializedName("temperatureMin")
     private double mTemperatureMin;
+    @SerializedName("temperatureMinTime")
     private double mTemperatureMinTime;
+    @SerializedName("temperatureMax")
     private double mTemperatureMax;
+    @SerializedName("temperatureMaxTime")
     private double mTemperatureMaxTime;
+    @SerializedName("dewPoint")
     private double mDewPoint;
+    @SerializedName("windSpeed")
     private double mWindSpeed;
+    @SerializedName("windBearing")
     private double mWindBearing;
+    @SerializedName("cloudCover")
     private double mCloudCover;
+    @SerializedName("humidity")
     private double mHumidity;
+    @SerializedName("pressure")
     private double mPressure;
+    @SerializedName("Visibility")
     private double mVisibility;
+    @SerializedName("ozone")
     private double mOzone;
 
     public long getTime() {
