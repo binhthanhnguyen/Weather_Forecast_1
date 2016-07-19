@@ -2,6 +2,7 @@ package com.framgia.edu.weatherforecast.util;
 
 import com.framgia.edu.weatherforecast.data.models.DataPoint;
 import com.framgia.edu.weatherforecast.data.models.ForecastResponse;
+import com.framgia.edu.weatherforecast.data.models.SpeedUnit;
 import com.framgia.edu.weatherforecast.data.models.TemperatureUnit;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class UnitConverter {
             dataPoint.setTemperature(TemperatureUnit.toCelsius(temperature));
 
         }
+
         dataSize = dailyData.size();
         for (int i = 0; i < dataSize; i++) {
             dataPoint = dailyData.get(i);
@@ -63,6 +65,48 @@ public class UnitConverter {
             dataPoint.setTemperature(TemperatureUnit.toFahrenheit(temperature));
             dataPoint.setTemperatureMax(TemperatureUnit.toFahrenheit(temperatureMax));
         }
+        return forecastResponse;
+    }
+
+    public static ForecastResponse speedFromMphToKph(ForecastResponse forecastResponse) {
+        DataPoint currentDataPoint = forecastResponse.getCurrently();
+        double windSpeed = currentDataPoint.getWindSpeed();
+        currentDataPoint.setWindSpeed(SpeedUnit.fromMphToKph(windSpeed));
+        return forecastResponse;
+    }
+
+    public static ForecastResponse speedFromMphToMetresPerSecond(ForecastResponse forecastResponse) {
+        DataPoint currentDataPoint = forecastResponse.getCurrently();
+        double windSpeed = currentDataPoint.getWindSpeed();
+        currentDataPoint.setWindSpeed(SpeedUnit.fromMphToMetresPerSecond(windSpeed));
+        return forecastResponse;
+    }
+
+    public static ForecastResponse speedFromKphToMph(ForecastResponse forecastResponse) {
+        DataPoint currentDataPoint = forecastResponse.getCurrently();
+        double windSpeed = currentDataPoint.getWindSpeed();
+        currentDataPoint.setWindSpeed(SpeedUnit.fromKphToMph(windSpeed));
+        return forecastResponse;
+    }
+
+    public static ForecastResponse speedFromKphToMetresPerSecond(ForecastResponse forecastResponse) {
+        DataPoint currentDataPoint = forecastResponse.getCurrently();
+        double windSpeed = currentDataPoint.getWindSpeed();
+        currentDataPoint.setWindSpeed(SpeedUnit.fromKphToMetresPerSecond(windSpeed));
+        return forecastResponse;
+    }
+
+    public static ForecastResponse speedFromMetresPerSecondToMph(ForecastResponse forecastResponse) {
+        DataPoint currentDataPoint = forecastResponse.getCurrently();
+        double windSpeed = currentDataPoint.getWindSpeed();
+        currentDataPoint.setWindSpeed(SpeedUnit.fromMetresPerSecondToMph(windSpeed));
+        return forecastResponse;
+    }
+
+    public static ForecastResponse speedFromMetresPerSecondToKph(ForecastResponse forecastResponse) {
+        DataPoint currentDataPoint = forecastResponse.getCurrently();
+        double windSpeed = currentDataPoint.getWindSpeed();
+        currentDataPoint.setWindSpeed(SpeedUnit.fromMetresPerSecondToKph(windSpeed));
         return forecastResponse;
     }
 }
