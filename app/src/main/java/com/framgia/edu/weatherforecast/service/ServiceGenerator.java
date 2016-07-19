@@ -1,4 +1,4 @@
-package com.framgia.binhnguyen.weatherforecast.service;
+package com.framgia.edu.weatherforecast.service;
 
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;

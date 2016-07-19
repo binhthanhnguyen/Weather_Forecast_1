@@ -1,4 +1,4 @@
-package com.framgia.binhnguyen.weatherforecast.data.models;
+package com.framgia.edu.weatherforecast.data.models;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -13,9 +13,9 @@ public class DataPoint {
     @SerializedName("icon")
     private String mIcon;
     @SerializedName("sunriseTime")
-    private String mSunriseTime;
+    private long mSunriseTime;
     @SerializedName("sunsetTime")
-    private String mSunsetTime;
+    private long mSunsetTime;
     @SerializedName("nearestStormDistance")
     private String mNearestStormDistance;
     @SerializedName("NearestStormBearing")
@@ -73,19 +73,19 @@ public class DataPoint {
         this.mIcon = icon;
     }
 
-    public String getSunriseTime() {
+    public long getSunriseTime() {
         return mSunriseTime;
     }
 
-    public void setSunriseTime(String sunriseTime) {
+    public void setSunriseTime(long sunriseTime) {
         this.mSunriseTime = sunriseTime;
     }
 
-    public String getSunsetTime() {
+    public long getSunsetTime() {
         return mSunsetTime;
     }
 
-    public void setSunsetTime(String sunsetTime) {
+    public void setSunsetTime(long sunsetTime) {
         this.mSunsetTime = sunsetTime;
     }
 

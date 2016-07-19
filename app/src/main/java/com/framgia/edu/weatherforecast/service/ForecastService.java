@@ -1,7 +1,7 @@
-package com.framgia.binhnguyen.weatherforecast.service;
+package com.framgia.edu.weatherforecast.service;
 
-import com.framgia.binhnguyen.weatherforecast.data.models.ForecastRequest;
-import com.framgia.binhnguyen.weatherforecast.data.models.ForecastResponse;
+import com.framgia.edu.weatherforecast.data.models.ForecastRequest;
+import com.framgia.edu.weatherforecast.data.models.ForecastResponse;
 
 import java.util.Map;
 
