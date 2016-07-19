@@ -82,7 +82,7 @@ public class HourlyAdapter extends RecyclerView.Adapter<HourlyAdapter.HourlyHold
                 mTextTime.setText(formatter.format(dateTime));
                 mTextTime.setTypeface(null, Typeface.NORMAL);
             }
-            mImageIcon.setImageResource(ResourceUtil.getIdentifier(mView.getContext(), dataPoint.getIcon()));
+            mImageIcon.setImageResource(ResourceUtil.getIdentifier(dataPoint.getIcon()));
             mTextTemperature.setText(String.valueOf(Math.round(dataPoint.getTemperature())) + (char) 0x00B0);
         }
     }
