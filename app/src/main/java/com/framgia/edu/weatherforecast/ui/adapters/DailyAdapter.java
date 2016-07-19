@@ -1,5 +1,5 @@
 package com.framgia.edu.weatherforecast.ui.adapters;
-;
+
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -23,11 +23,12 @@ import java.util.TimeZone;
 public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.DailyHolder> {
     private DataBlock mDataBlock;
     private String mTimeZone;
+
     private LayoutInflater mInflater;
 
     public DailyAdapter(Context context, DataBlock dataBlock, String timeZone) {
         mDataBlock = dataBlock;
-        mDataBlock.getData().remove(0);
+        if (mDataBlock != null && mDataBlock.getData().size() > 7) mDataBlock.getData().remove(0);
         mTimeZone = timeZone;
         mInflater = LayoutInflater.from(context);
     }
@@ -47,6 +48,15 @@ public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.DailyHolder>
     @Override
     public int getItemCount() {
         return mDataBlock.getData().size();
+    }
+
+    public void setTimeZone(String timeZone) {
+        mTimeZone = timeZone;
+    }
+
+    public void setDataBlock(DataBlock dataBlock) {
+        mDataBlock = dataBlock;
+        if (mDataBlock != null && mDataBlock.getData().size() > 7) mDataBlock.getData().remove(0);
     }
 
     public class DailyHolder extends RecyclerView.ViewHolder {

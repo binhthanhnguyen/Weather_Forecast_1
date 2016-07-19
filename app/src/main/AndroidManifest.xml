@@ -10,6 +10,10 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyB8_RssjR_GdZ_EfZQd40_RcldnAVt8g94"/>
+
         <activity
             android:name="com.framgia.edu.weatherforecast.ui.activities.MainActivity"
             android:label="@string/app_name"
@@ -21,6 +25,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
     </application>
 
 </manifest>

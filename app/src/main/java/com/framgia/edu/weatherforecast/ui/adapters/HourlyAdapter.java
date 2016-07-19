@@ -49,6 +49,14 @@ public class HourlyAdapter extends RecyclerView.Adapter<HourlyAdapter.HourlyHold
         return mDataBlock.getData().size();
     }
 
+    public void setDataBlock(DataBlock dataBlock) {
+        mDataBlock = dataBlock;
+    }
+
+    public void setTimeZone(String timeZone) {
+        mTimeZone = timeZone;
+    }
+
     public class HourlyHolder extends RecyclerView.ViewHolder {
         private View mView;
         private TextView mTextTime;
