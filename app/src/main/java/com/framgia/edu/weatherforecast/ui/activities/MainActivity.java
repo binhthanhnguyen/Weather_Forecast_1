@@ -24,11 +24,14 @@ import com.framgia.edu.weatherforecast.data.models.DataBlock;
 import com.framgia.edu.weatherforecast.data.models.DataPoint;
 import com.framgia.edu.weatherforecast.data.models.ForecastRequest;
 import com.framgia.edu.weatherforecast.data.models.ForecastResponse;
+import com.framgia.edu.weatherforecast.data.models.TemperatureUnit;
 import com.framgia.edu.weatherforecast.service.ForecastService;
 import com.framgia.edu.weatherforecast.service.ServiceGenerator;
 import com.framgia.edu.weatherforecast.ui.adapters.DailyAdapter;
 import com.framgia.edu.weatherforecast.ui.adapters.HourlyAdapter;
+import com.framgia.edu.weatherforecast.util.SettingsPreferences;
 import com.framgia.edu.weatherforecast.util.Temperature;
+import com.framgia.edu.weatherforecast.util.UnitConverter;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
@@ -51,6 +54,8 @@ public class MainActivity extends AppCompatActivity
 
     private static final String TAG = "MainActivity";
     private static final int REQUEST_CODE_AUTOCOMPLETE = 1;
+    private static final int REQUEST_CODE_SETTINGS = 2;
+
     private ForecastService mForecastService;
     private SimpleDateFormat mDateFormatter;
     private SimpleDateFormat mHourlyFormatter;
@@ -96,6 +101,9 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+        mDateFormatter = new SimpleDateFormat("EEEE");
+        mHourlyFormatter = new SimpleDateFormat("hh:mm aa");
+
         mDateFormatter = new SimpleDateFormat("EEEE");
         mHourlyFormatter = new SimpleDateFormat("hh:mm aa");
 
@@ -161,6 +169,10 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        if (item.getItemId() == R.id.nav_settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivityForResult(intent, REQUEST_CODE_SETTINGS);
+        }
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
@@ -176,7 +188,14 @@ public class MainActivity extends AppCompatActivity
                 ForecastRequest request = new ForecastRequest();
                 request.setLatitude(String.valueOf(latLng.latitude));
                 request.setLongitude(String.valueOf(latLng.longitude));
-                request.setUnits(ForecastRequest.Units.SI);
+
+                int temperatureUnit = SettingsPreferences.getStoredSettingsTemperature(this);
+                if (temperatureUnit == TemperatureUnit.CELSIUS) {
+                    request.setUnits(ForecastRequest.Units.CA);
+                } else {
+                    request.setUnits(ForecastRequest.Units.US);
+                }
+
                 request.setLanguage(ForecastRequest.Language.ENGLISH);
                 Call<ForecastResponse> responseCall = mForecastService.getForecast(request, request.getQueryParams());
                 responseCall.enqueue(new Callback<ForecastResponse>() {
@@ -197,6 +216,20 @@ public class MainActivity extends AppCompatActivity
             } else if (resultCode == PlaceAutocomplete.RESULT_ERROR) {
                 Log.e(TAG, getString(R.string.error_place_autocomplete_result) +
                         PlaceAutocomplete.getStatus(this, data).toString());
+            }
+
+        } else if (requestCode == REQUEST_CODE_SETTINGS) {
+            if (resultCode == RESULT_OK) {
+                int prevTemperatureUnit = data.getIntExtra(SettingsActivity.EXTRA_PREV_TEMPERATURE_UNIT, 0);
+                int currentTemperatureUnit = SettingsPreferences.getStoredSettingsTemperature(this);
+                if (currentTemperatureUnit != prevTemperatureUnit) {
+                    if (currentTemperatureUnit == TemperatureUnit.CELSIUS) {
+                        mForecastResponse = UnitConverter.temperatureToCelsius(mForecastResponse);
+                    } else {
+                        mForecastResponse = UnitConverter.temperatureToFahrenheit(mForecastResponse);
+                    }
+                }
+                updateUi();
             }
         }
     }
@@ -222,7 +255,13 @@ public class MainActivity extends AppCompatActivity
             ForecastRequest request = new ForecastRequest();
             request.setLatitude(String.valueOf(mLatitude));
             request.setLongitude(String.valueOf(mLongitude));
-            request.setUnits(ForecastRequest.Units.SI);
+
+            int temperatureUnit = SettingsPreferences.getStoredSettingsTemperature(MainActivity.this);
+            if (temperatureUnit == TemperatureUnit.CELSIUS) {
+                request.setUnits(ForecastRequest.Units.CA);
+            } else {
+                request.setUnits(ForecastRequest.Units.US);
+            }
             request.setLanguage(ForecastRequest.Language.ENGLISH);
             try {
                 Call<ForecastResponse> responseCall = mForecastService.getForecast(request, request.getQueryParams());
