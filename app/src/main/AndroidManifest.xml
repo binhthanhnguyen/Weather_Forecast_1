@@ -3,6 +3,8 @@
     package="com.framgia.edu.weatherforecast">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -31,6 +33,10 @@
                   android:screenOrientation="portrait">
 
         </activity>
+
+        <service android:name=".service.FetchAddressIntentService"
+            android:exported="false" />
+
     </application>
 
 </manifest>

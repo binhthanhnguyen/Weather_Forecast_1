@@ -1,9 +1,19 @@
 package com.framgia.edu.weatherforecast.ui.activities;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.IntentSender;
+import android.content.pm.PackageManager;
+import android.location.Geocoder;
+import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.ResultReceiver;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.NavigationView;
+import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -19,13 +29,14 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.framgia.edu.weatherforecast.R;
-import com.framgia.edu.weatherforecast.data.models.Constant;
+import com.framgia.edu.weatherforecast.data.models.Constants;
 import com.framgia.edu.weatherforecast.data.models.DataBlock;
 import com.framgia.edu.weatherforecast.data.models.DataPoint;
 import com.framgia.edu.weatherforecast.data.models.ForecastRequest;
 import com.framgia.edu.weatherforecast.data.models.ForecastResponse;
 import com.framgia.edu.weatherforecast.data.models.SpeedUnit;
 import com.framgia.edu.weatherforecast.data.models.TemperatureUnit;
+import com.framgia.edu.weatherforecast.service.FetchAddressIntentService;
 import com.framgia.edu.weatherforecast.service.ForecastService;
 import com.framgia.edu.weatherforecast.service.ServiceGenerator;
 import com.framgia.edu.weatherforecast.ui.adapters.DailyAdapter;
@@ -33,9 +44,22 @@ import com.framgia.edu.weatherforecast.ui.adapters.HourlyAdapter;
 import com.framgia.edu.weatherforecast.util.SettingsPreferences;
 import com.framgia.edu.weatherforecast.util.Temperature;
 import com.framgia.edu.weatherforecast.util.UnitConverter;
+import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
+import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResult;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.location.places.AutocompleteFilter;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlaceAutocomplete;
@@ -52,13 +76,26 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements
+        NavigationView.OnNavigationItemSelectedListener,
+        ConnectionCallbacks,
+        OnConnectionFailedListener,
+        LocationListener,
+        ResultCallback<LocationSettingsResult> {
 
     private static final String TAG = "MainActivity";
     private static final int REQUEST_CODE_AUTOCOMPLETE = 1;
     private static final int REQUEST_CODE_SETTINGS = 2;
+    protected static final int REQUEST_CODE_CHECK_SETTINGS = 3;
+    private static final int REQUEST_CODE_LOCATION_PERMISSION = 4;
+
+    private CoordinatorLayout mCoordinatorLayout;
+
     private ForecastService mForecastService;
+    private GoogleApiClient mGoogleApiClient;
+    private LocationRequest mLocationRequest;
+    private AddressResultReceiver mAddressResultReceiver;
+    private LocationSettingsRequest mLocationSettingsRequest;
     private SimpleDateFormat mDateFormatter;
     private SimpleDateFormat mHourlyFormatter;
     private DecimalFormat mDecimalFormat;
@@ -82,15 +119,20 @@ public class MainActivity extends AppCompatActivity
     private TextView mTextVisibility;
     private TextView mTextOzone;
     private Place mPlace;
+    private Location mLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
-        mForecastService = ServiceGenerator.createService(ForecastService.class, Constant.API_KEY);
-        //TODO Test
-        new FetchForecastTask(this, 21.0278, 105.8342).execute();
+        mForecastService = ServiceGenerator.createService(ForecastService.class, Constants.API_KEY);
+        mCoordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinate_layout);
+
+        if (mGoogleApiClient == null) {
+            buildGoogleApiClient();
+            mAddressResultReceiver = new AddressResultReceiver(new Handler());
+        }
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -108,9 +150,6 @@ public class MainActivity extends AppCompatActivity
         mDateFormatter = new SimpleDateFormat("EEEE");
         mHourlyFormatter = new SimpleDateFormat("hh:mm aa");
         mDecimalFormat = new DecimalFormat();
-
-        mDateFormatter = new SimpleDateFormat("EEEE");
-        mHourlyFormatter = new SimpleDateFormat("hh:mm aa");
 
         mRecyclerViewHourly = (RecyclerView) findViewById(R.id.recycler_view_hourly);
         mRecyclerViewHourly
@@ -132,6 +171,20 @@ public class MainActivity extends AppCompatActivity
         mTextPressure = (TextView) findViewById(R.id.text_pressure);
         mTextVisibility = (TextView) findViewById(R.id.text_visibility);
         mTextOzone = (TextView) findViewById(R.id.text_ozone);
+    }
+
+    @Override
+    protected void onStart() {
+        mGoogleApiClient.connect();
+        super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        if (mGoogleApiClient.isConnected()) {
+            mGoogleApiClient.disconnect();
+        }
+        super.onStop();
     }
 
     @Override
@@ -191,6 +244,7 @@ public class MainActivity extends AppCompatActivity
                 mTextToolbarTitle.setText(mPlace.getName());
                 LatLng latLng = mPlace.getLatLng();
                 fetchForecastAsync(latLng);
+
             } else if (resultCode == PlaceAutocomplete.RESULT_ERROR) {
                 Log.e(TAG, getString(R.string.error_place_autocomplete_result) +
                         PlaceAutocomplete.getStatus(this, data).toString());
@@ -202,6 +256,148 @@ public class MainActivity extends AppCompatActivity
                 int prevSpeedUnit = data.getIntExtra(SettingsActivity.EXTRA_PREV_WIND_SPEED_UNIT, 0);
                 setUnits(prevTemperatureUnit, prevSpeedUnit);
             }
+        } else if (requestCode == REQUEST_CODE_CHECK_SETTINGS) {
+            if (resultCode == RESULT_OK) {
+                Log.i(TAG, "User agreed to make required location settings changes.");
+                LocationServices.FusedLocationApi
+                        .requestLocationUpdates(mGoogleApiClient, mLocationRequest, this)
+                        .setResultCallback(new ResultCallback<Status>() {
+                            @Override
+                            public void onResult(Status status) {
+
+                            }
+                        });
+
+            } else if (resultCode == RESULT_CANCELED) {
+                Log.i(TAG, "User chose not to make required location settings changes.");
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == REQUEST_CODE_LOCATION_PERMISSION) {
+            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                changeLocationSettings();
+            } else {
+                Snackbar.make(mCoordinatorLayout, R.string.permission_not_granted, Snackbar.LENGTH_SHORT)
+                        .show();
+            }
+        }
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        if (mLocation == null) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestLocationPermission();
+            } else {
+                changeLocationSettings();
+            }
+        }
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+        mGoogleApiClient.connect();
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+
+    }
+
+    @Override
+    public void onResult(LocationSettingsResult locationSettingsResult) {
+        final Status status = locationSettingsResult.getStatus();
+        switch (status.getStatusCode()) {
+            case LocationSettingsStatusCodes.SUCCESS:
+                mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+                if (mLocation != null) {
+                    FetchAddressIntentService.startIntentService(this, mAddressResultReceiver, mLocation);
+                    new FetchForecastTask(this, mLocation.getLatitude(), mLocation.getLongitude()).execute();
+                }
+
+                break;
+            case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+                Log.i(TAG, "Location settings are not satisfied. Show the user a dialog to" +
+                        "upgrade location settings ");
+                try {
+                    status.startResolutionForResult(MainActivity.this, REQUEST_CODE_CHECK_SETTINGS);
+                } catch (IntentSender.SendIntentException e) {
+                    Log.i(TAG, "PendingIntent unable to execute request.");
+                }
+                break;
+            case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                Log.i(TAG, "Location settings are inadequate, and cannot be fixed here. Dialog " +
+                        "not created.");
+                break;
+        }
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        mLocation = location;
+        if (mLocation != null) {
+            FetchAddressIntentService.startIntentService(this, mAddressResultReceiver, mLocation);
+            new FetchForecastTask(this, mLocation.getLatitude(), mLocation.getLongitude()).execute();
+        }
+    }
+
+    protected synchronized void buildGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+    }
+
+    private void changeLocationSettings() {
+        createLocationRequest();
+        buildLocationSettingsRequest();
+        checkLocationSettings();
+    }
+
+    private void createLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setNumUpdates(1);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_LOW_POWER);
+    }
+
+    private void buildLocationSettingsRequest() {
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
+        builder.addLocationRequest(mLocationRequest);
+        mLocationSettingsRequest = builder.build();
+    }
+
+    private void checkLocationSettings() {
+        PendingResult<LocationSettingsResult> result =
+                LocationServices.SettingsApi.checkLocationSettings(
+                        mGoogleApiClient,
+                        mLocationSettingsRequest
+                );
+        result.setResultCallback(this);
+    }
+
+    private void requestLocationPermission() {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
+            Snackbar.make(mCoordinatorLayout, R.string.permission_location_rationale, Snackbar.LENGTH_INDEFINITE)
+                    .setAction(R.string.button_label_ok, new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            ActivityCompat.requestPermissions(MainActivity.this,
+                                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                                    REQUEST_CODE_LOCATION_PERMISSION);
+                        }
+                    })
+                    .show();
+
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE_LOCATION_PERMISSION);
         }
     }
 
@@ -209,7 +405,6 @@ public class MainActivity extends AppCompatActivity
         ForecastRequest request = new ForecastRequest();
         request.setLatitude(String.valueOf(latLng.latitude));
         request.setLongitude(String.valueOf(latLng.longitude));
-
         int temperatureUnit = SettingsPreferences.getStoredSettingsTemperature(this);
         if (temperatureUnit == TemperatureUnit.FAHRENHEIT) {
             request.setUnits(ForecastRequest.Units.US);
@@ -319,7 +514,6 @@ public class MainActivity extends AppCompatActivity
             mTextTodaySummary.setText(getString(R.string.label_today_colon) + todayDataPoint.getSummary());
             mTextSunrise.setText(mHourlyFormatter.format(new Date(todayDataPoint.getSunriseTime() * 1000L)));
             mTextSunset.setText(mHourlyFormatter.format(new Date(todayDataPoint.getSunsetTime() * 1000L)));
-
             mTextHumidity.setText(Math.round(currentDataPoint.getHumidity() * 100)
                     + getString(R.string.unit_label_percentage));
             String speedUnitLabel = null;
@@ -409,6 +603,22 @@ public class MainActivity extends AppCompatActivity
                 mMainActivity.mForecastResponse = forecastResponse;
                 mMainActivity.mProgressBar.setVisibility(View.GONE);
                 mMainActivity.updateUi();
+            }
+        }
+    }
+
+    private class AddressResultReceiver extends ResultReceiver {
+
+        public AddressResultReceiver(Handler handler) {
+            super(handler);
+        }
+
+        @Override
+        protected void onReceiveResult(int resultCode, Bundle resultData) {
+
+            if (resultCode == Constants.RESULT_OK) {
+                String address = resultData.getString(Constants.BUNDLE_ADDRESS);
+                mTextToolbarTitle.setText(address);
             }
         }
     }

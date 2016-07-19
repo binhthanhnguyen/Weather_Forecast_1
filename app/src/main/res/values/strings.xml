@@ -31,4 +31,8 @@
     <string name="error_message_google_availability">"Google Play Service is not available: "</string>
     <string name="error_place_autocomplete_result">"Error: status = "</string>
     <string name="title_settings">Settings</string>
+    <string name="button_label_ok">Ok</string>
+    <string name="permission_location_rationale">Location permission is needed to show weather current location</string>
+    <string name="permission_not_granted">Permission were not granted.</string>
+    <string name="error_message_no_location_data_provided">No location data provided</string>
 </resources>
