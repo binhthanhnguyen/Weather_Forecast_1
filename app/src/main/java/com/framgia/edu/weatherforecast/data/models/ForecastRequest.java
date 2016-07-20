@@ -1,4 +1,4 @@
-package com.framgia.binhnguyen.weatherforecast.data.models;
+package com.framgia.edu.weatherforecast.data.models;
 
 import java.util.HashMap;
 import java.util.Map;

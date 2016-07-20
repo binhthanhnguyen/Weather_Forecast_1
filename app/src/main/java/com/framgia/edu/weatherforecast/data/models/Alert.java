@@ -1,4 +1,4 @@
-package com.framgia.binhnguyen.weatherforecast.data.models;
+package com.framgia.edu.weatherforecast.data.models;
 
 import com.google.gson.annotations.SerializedName;
 

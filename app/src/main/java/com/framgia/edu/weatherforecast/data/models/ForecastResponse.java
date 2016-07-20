@@ -1,7 +1,5 @@
-package com.framgia.binhnguyen.weatherforecast.data.models;
+package com.framgia.edu.weatherforecast.data.models;
 
-import com.framgia.binhnguyen.weatherforecast.data.models.DataBlock;
-import com.framgia.binhnguyen.weatherforecast.data.models.DataPoint;
 import com.google.gson.annotations.SerializedName;
 
 /**
