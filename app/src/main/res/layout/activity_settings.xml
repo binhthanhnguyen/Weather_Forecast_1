@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.design.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <android.support.design.widget.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@android:color/background_dark"
+            android:popupTheme="@style/Theme.AppCompat.Light"
+            android:theme="@style/ThemeOverlay.AppCompat.ActionBar">
+
+            <TextView
+                android:id="@+id/toolbar_title"
+                style="@style/TextAppearance.AppCompat.Widget.ActionBar.Title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center" />
+
+        </android.support.v7.widget.Toolbar>
+    </android.support.design.widget.AppBarLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/darker_gray"
+        android:orientation="vertical"
+        android:padding="@dimen/padding_medium"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/label_temperature"
+            android:textSize="@dimen/text_medium" />
+
+        <RadioGroup
+            android:id="@+id/radio_temperature_unit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/margin_small"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/radio_celsius"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/radio_button_selector_first"
+                android:button="@null"
+                android:checked="true"
+                android:gravity="center"
+                android:padding="@dimen/padding_tiny"
+                android:text="@string/label_celsius_unit"
+                android:textColor="@drawable/radio_button_text_color_selector" />
+
+            <RadioButton
+                android:id="@+id/radio_fahrenheit"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/radio_button_selector_end"
+                android:button="@null"
+                android:gravity="center"
+                android:padding="@dimen/padding_tiny"
+                android:text="@string/label_fahrenheit_unit"
+                android:textColor="@drawable/radio_button_text_color_selector" />
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/label_wind_speed"
+            android:textSize="@dimen/text_medium" />
+
+        <RadioGroup
+            android:id="@+id/radio_wind_speed_unit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/margin_small"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/radio_miles_per_hour"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/radio_button_selector_first"
+                android:button="@null"
+                android:checked="true"
+                android:gravity="center"
+                android:padding="@dimen/padding_tiny"
+                android:text="@string/label_mph"
+                android:textColor="@drawable/radio_button_text_color_selector" />
+
+            <RadioButton
+                android:id="@+id/radio_kilometres_per_hour"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/radio_button_selector_middle"
+                android:button="@null"
+                android:checked="true"
+                android:gravity="center"
+                android:padding="@dimen/padding_tiny"
+                android:text="@string/label_kilometres_per_hour"
+                android:textColor="@drawable/radio_button_text_color_selector" />
+
+
+            <RadioButton
+                android:id="@+id/radio_m_per_second"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/radio_button_selector_end"
+                android:button="@null"
+                android:gravity="center"
+                android:padding="@dimen/padding_tiny"
+                android:text="@string/label_metres_per_second"
+                android:textColor="@drawable/radio_button_text_color_selector" />
+
+        </RadioGroup>
+
+    </LinearLayout>
+
+</android.support.design.widget.CoordinatorLayout>
