@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <android.support.design.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -102,7 +103,7 @@
                 android:checked="true"
                 android:gravity="center"
                 android:padding="@dimen/padding_tiny"
-                android:text="@string/label_mph"
+                android:text="@string/label_miles_per_hour"
                 android:textColor="@drawable/radio_button_text_color_selector" />
 
             <RadioButton
@@ -120,7 +121,7 @@
 
 
             <RadioButton
-                android:id="@+id/radio_m_per_second"
+                android:id="@+id/radio_metres_per_second"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
