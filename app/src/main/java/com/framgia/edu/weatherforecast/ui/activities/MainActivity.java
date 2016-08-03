@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
-import android.location.Geocoder;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -28,8 +27,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.framgia.edu.weatherforecast.R;
+import com.framgia.edu.weatherforecast.data.daos.CityDAO;
+import com.framgia.edu.weatherforecast.data.models.City;
 import com.framgia.edu.weatherforecast.data.models.Constants;
 import com.framgia.edu.weatherforecast.data.models.DataBlock;
 import com.framgia.edu.weatherforecast.data.models.DataPoint;
@@ -72,6 +74,7 @@ import java.lang.ref.WeakReference;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.TimeZone;
 
 import retrofit2.Call;
@@ -94,6 +97,9 @@ public class MainActivity extends AppCompatActivity implements
     private CoordinatorLayout mCoordinatorLayout;
     private SwipeRefreshLayout mSwipeRefreshLayout;
 
+    private CityDAO mCityDAO;
+    private List<City> mCities;
+    private City mCurrentCity;
     private ForecastService mForecastService;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
@@ -123,6 +129,7 @@ public class MainActivity extends AppCompatActivity implements
     private TextView mTextOzone;
     private Place mPlace;
     private Location mLocation;
+    private Menu mMenu;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -131,6 +138,7 @@ public class MainActivity extends AppCompatActivity implements
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
         mForecastService = ServiceGenerator.createService(ForecastService.class, Constants.API_KEY);
         mCoordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinate_layout);
+        mCityDAO = CityDAO.getInstance(this);
 
         if (mGoogleApiClient == null) {
             buildGoogleApiClient();
@@ -138,30 +146,7 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
-        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-
-                if (!NetworkUtil.isConnected(MainActivity.this)) {
-                    mSwipeRefreshLayout.setRefreshing(false);
-                    return;
-                }
-
-                if (mPlace != null) {
-                    fetchForecastAsync(mPlace.getLatLng());
-                    return;
-                }
-
-                if (mLocation != null) {
-                    FetchAddressIntentService
-                            .startIntentService(MainActivity.this, mAddressResultReceiver, mLocation);
-                    fetchForecastAsync(new LatLng(mLocation.getLatitude(), mLocation.getLongitude()));
-                } else {
-                    mSwipeRefreshLayout.setRefreshing(false);
-                }
-            }
-        });
-
+        setupSwipeRefreshLayout(mSwipeRefreshLayout);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -175,6 +160,8 @@ public class MainActivity extends AppCompatActivity implements
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+        mMenu = navigationView.getMenu();
+        setupLocationMenu(mMenu);
 
         mDateFormatter = new SimpleDateFormat("EEEE");
         mHourlyFormatter = new SimpleDateFormat("hh:mm aa");
@@ -260,6 +247,17 @@ public class MainActivity extends AppCompatActivity implements
             Intent intent = new Intent(this, SettingsActivity.class);
             startActivityForResult(intent, REQUEST_CODE_SETTINGS);
         }
+
+        for (City city : mCities) {
+            if (item.getItemId() == city.getId()) {
+                mPlace = null;
+                mCurrentCity = city;
+                LatLng latLng = new LatLng(city.getLatitude(), city.getLongitude());
+                fetchForecastAsync(latLng);
+                mTextToolbarTitle.setText(city.getName());
+                updateUi();
+            }
+        }
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
@@ -270,9 +268,17 @@ public class MainActivity extends AppCompatActivity implements
         if (requestCode == REQUEST_CODE_AUTOCOMPLETE) {
             if (resultCode == RESULT_OK) {
                 mPlace = PlaceAutocomplete.getPlace(this, data);
-                mTextToolbarTitle.setText(mPlace.getName());
+                String cityName = (String) mPlace.getName();
+                mTextToolbarTitle.setText(cityName);
                 LatLng latLng = mPlace.getLatLng();
                 fetchForecastAsync(latLng);
+                if (mCityDAO.insert(new City(cityName, latLng.latitude, latLng.longitude))) {
+                    mCities = mCityDAO.getAllCities();
+                    City lastCity = mCities.get(mCities.size() -1);
+                    addLocationMenuItem(mMenu, lastCity);
+                } else {
+                    Toast.makeText(this, R.string.error_message_can_not_add_location, Toast.LENGTH_LONG).show();
+                }
 
             } else if (resultCode == PlaceAutocomplete.RESULT_ERROR) {
                 Log.e(TAG, getString(R.string.error_place_autocomplete_result) +
@@ -281,6 +287,7 @@ public class MainActivity extends AppCompatActivity implements
 
         } else if (requestCode == REQUEST_CODE_SETTINGS) {
             if (resultCode == RESULT_OK) {
+                if (mForecastResponse == null) return;
                 int prevTemperatureUnit = data.getIntExtra(SettingsActivity.EXTRA_PREV_TEMPERATURE_UNIT, 0);
                 int prevSpeedUnit = data.getIntExtra(SettingsActivity.EXTRA_PREV_WIND_SPEED_UNIT, 0);
                 setUnits(prevTemperatureUnit, prevSpeedUnit);
@@ -376,6 +383,49 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
+    private void setupSwipeRefreshLayout(final SwipeRefreshLayout swipeRefreshLayout) {
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                if (!NetworkUtil.isConnected(MainActivity.this)) {
+                    swipeRefreshLayout.setRefreshing(false);
+                    return;
+                }
+
+                if (mPlace != null) {
+                    fetchForecastAsync(mPlace.getLatLng());
+                    return;
+                }
+
+                if (mCurrentCity != null) {
+                    fetchForecastAsync(new LatLng(mCurrentCity.getLatitude(), mCurrentCity.getLongitude()));
+                    return;
+                }
+
+                if (mLocation != null) {
+                    FetchAddressIntentService
+                            .startIntentService(MainActivity.this, mAddressResultReceiver, mLocation);
+                    fetchForecastAsync(new LatLng(mLocation.getLatitude(), mLocation.getLongitude()));
+                } else {
+                    swipeRefreshLayout.setRefreshing(false);
+                }
+            }
+        });
+    }
+
+    private void setupLocationMenu(Menu menu) {
+        mCities = mCityDAO.getAllCities();
+        for (City city : mCities) {
+            menu.add(R.id.location_group, city.getId(), 0, city.getName())
+                    .setIcon(R.drawable.ic_location_on);
+        }
+    }
+
+    private void addLocationMenuItem(Menu menu, City city) {
+        menu.add(R.id.location_group, city.getId(), 0, city.getName())
+                .setIcon(R.drawable.ic_location_on);
+    }
+
     protected synchronized void buildGoogleApiClient() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -399,6 +449,7 @@ public class MainActivity extends AppCompatActivity implements
     private void buildLocationSettingsRequest() {
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
         builder.addLocationRequest(mLocationRequest);
+        builder.setAlwaysShow(true);
         mLocationSettingsRequest = builder.build();
     }
 
@@ -429,7 +480,6 @@ public class MainActivity extends AppCompatActivity implements
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE_LOCATION_PERMISSION);
         }
     }
-
 
     private void fetchForecastAsync(LatLng latLng) {
         ForecastRequest request = new ForecastRequest();
