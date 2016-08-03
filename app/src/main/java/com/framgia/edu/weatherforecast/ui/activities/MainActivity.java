@@ -16,6 +16,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -41,6 +42,7 @@ import com.framgia.edu.weatherforecast.service.ForecastService;
 import com.framgia.edu.weatherforecast.service.ServiceGenerator;
 import com.framgia.edu.weatherforecast.ui.adapters.DailyAdapter;
 import com.framgia.edu.weatherforecast.ui.adapters.HourlyAdapter;
+import com.framgia.edu.weatherforecast.util.NetworkUtil;
 import com.framgia.edu.weatherforecast.util.SettingsPreferences;
 import com.framgia.edu.weatherforecast.util.Temperature;
 import com.framgia.edu.weatherforecast.util.UnitConverter;
@@ -90,6 +92,7 @@ public class MainActivity extends AppCompatActivity implements
     private static final int REQUEST_CODE_LOCATION_PERMISSION = 4;
 
     private CoordinatorLayout mCoordinatorLayout;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
 
     private ForecastService mForecastService;
     private GoogleApiClient mGoogleApiClient;
@@ -133,6 +136,32 @@ public class MainActivity extends AppCompatActivity implements
             buildGoogleApiClient();
             mAddressResultReceiver = new AddressResultReceiver(new Handler());
         }
+
+        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+
+                if (!NetworkUtil.isConnected(MainActivity.this)) {
+                    mSwipeRefreshLayout.setRefreshing(false);
+                    return;
+                }
+
+                if (mPlace != null) {
+                    fetchForecastAsync(mPlace.getLatLng());
+                    return;
+                }
+
+                if (mLocation != null) {
+                    FetchAddressIntentService
+                            .startIntentService(MainActivity.this, mAddressResultReceiver, mLocation);
+                    fetchForecastAsync(new LatLng(mLocation.getLatitude(), mLocation.getLongitude()));
+                } else {
+                    mSwipeRefreshLayout.setRefreshing(false);
+                }
+            }
+        });
+
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -401,6 +430,7 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
+
     private void fetchForecastAsync(LatLng latLng) {
         ForecastRequest request = new ForecastRequest();
         request.setLatitude(String.valueOf(latLng.latitude));
@@ -428,11 +458,17 @@ public class MainActivity extends AppCompatActivity implements
                     mForecastResponse = response.body();
                     updateUi();
                 }
+                if (mSwipeRefreshLayout.isRefreshing()) {
+                    mSwipeRefreshLayout.setRefreshing(false);
+                }
             }
 
             @Override
             public void onFailure(Call<ForecastResponse> call, Throwable t) {
                 Log.d(TAG, t.getMessage());
+                if (mSwipeRefreshLayout.isRefreshing()) {
+                    mSwipeRefreshLayout.setRefreshing(false);
+                }
             }
         });
     }

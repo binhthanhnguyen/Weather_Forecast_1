@@ -78,7 +78,7 @@ public class DailyAdapter extends RecyclerView.Adapter<DailyAdapter.DailyHolder>
             simpleDateFormat.setTimeZone(TimeZone.getTimeZone(mTimeZone));
             Date dateTime = new Date(dataPoint.getTime() * 1000L);
             mTextDay.setText(simpleDateFormat.format(dateTime));
-            mImageIcon.setImageResource(ResourceUtil.getIdentifier(mView.getContext(), dataPoint.getIcon()));
+            mImageIcon.setImageResource(ResourceUtil.getIdentifier(dataPoint.getIcon()));
             mTextTemperature.setText(String.valueOf(Math.round(dataPoint.getTemperatureMax())));
         }
     }
