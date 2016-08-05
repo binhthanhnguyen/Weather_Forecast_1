@@ -36,4 +36,5 @@
     <string name="permission_not_granted">Permission were not granted.</string>
     <string name="error_message_no_location_data_provided">No location data provided</string>
     <string name="error_message_can_not_add_location">Can not add new location</string>
+    <string name ="error_message_no_address_found">Sorry, no address found</string>
 </resources>
