@@ -31,10 +31,15 @@
     <string name="error_message_google_availability">"Google Play Service is not available: "</string>
     <string name="error_place_autocomplete_result">"Error: status = "</string>
     <string name="title_settings">Settings</string>
+    <string name="title_cellular_data_is_turned_off">Cellular Data is Turned Off</string>
     <string name="button_label_ok">Ok</string>
+    <string name="button_label_settings">Settings</string>
     <string name="permission_location_rationale">Location permission is needed to show weather current location</string>
     <string name="permission_not_granted">Permission were not granted.</string>
     <string name="error_message_no_location_data_provided">No location data provided</string>
     <string name="error_message_can_not_add_location">Can not add new location</string>
     <string name ="error_message_no_address_found">Sorry, no address found</string>
+    <string name="message_turn_on_cellular_data">Turn on cellular data or use Wi-Fi to access data.</string>
+
+
 </resources>
