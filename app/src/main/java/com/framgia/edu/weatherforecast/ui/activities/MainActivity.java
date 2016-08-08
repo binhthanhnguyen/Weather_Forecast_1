@@ -1,6 +1,8 @@
 package com.framgia.edu.weatherforecast.ui.activities;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
@@ -9,6 +11,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
+import android.provider.Settings;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
@@ -25,6 +28,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -95,6 +99,7 @@ public class MainActivity extends AppCompatActivity implements
     private static final int REQUEST_CODE_LOCATION_PERMISSION = 4;
 
     private CoordinatorLayout mCoordinatorLayout;
+    private LinearLayout mLinearLayout;
     private SwipeRefreshLayout mSwipeRefreshLayout;
 
     private CityDAO mCityDAO;
@@ -138,6 +143,7 @@ public class MainActivity extends AppCompatActivity implements
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
         mForecastService = ServiceGenerator.createService(ForecastService.class, Constants.API_KEY);
         mCoordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinate_layout);
+        mLinearLayout = (LinearLayout) findViewById(R.id.linear_layout);
         mCityDAO = CityDAO.getInstance(this);
 
         if (mGoogleApiClient == null) {
@@ -253,6 +259,8 @@ public class MainActivity extends AppCompatActivity implements
                 mPlace = null;
                 mCurrentCity = city;
                 LatLng latLng = new LatLng(city.getLatitude(), city.getLongitude());
+                mProgressBar.setVisibility(View.VISIBLE);
+                mLinearLayout.setVisibility(View.GONE);
                 fetchForecastAsync(latLng);
                 mTextToolbarTitle.setText(city.getName());
                 updateUi();
@@ -271,6 +279,8 @@ public class MainActivity extends AppCompatActivity implements
                 String cityName = (String) mPlace.getName();
                 mTextToolbarTitle.setText(cityName);
                 LatLng latLng = mPlace.getLatLng();
+                mProgressBar.setVisibility(View.VISIBLE);
+                mLinearLayout.setVisibility(View.GONE);
                 fetchForecastAsync(latLng);
                 if (mCityDAO.insert(new City(cityName, latLng.latitude, latLng.longitude))) {
                     mCities = mCityDAO.getAllCities();
@@ -353,6 +363,10 @@ public class MainActivity extends AppCompatActivity implements
             case LocationSettingsStatusCodes.SUCCESS:
                 mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
                 if (mLocation != null) {
+                    if(!NetworkUtil.isConnected(this)) {
+                        showNetworkSettingsDialog();
+                        return;
+                    }
                     FetchAddressIntentService.startIntentService(this, mAddressResultReceiver, mLocation);
                     new FetchForecastTask(this, mLocation.getLatitude(), mLocation.getLongitude()).execute();
                 }
@@ -378,6 +392,10 @@ public class MainActivity extends AppCompatActivity implements
     public void onLocationChanged(Location location) {
         mLocation = location;
         if (mLocation != null) {
+            if(!NetworkUtil.isConnected(this)) {
+                showNetworkSettingsDialog();
+                return;
+            }
             FetchAddressIntentService.startIntentService(this, mAddressResultReceiver, mLocation);
             new FetchForecastTask(this, mLocation.getLatitude(), mLocation.getLongitude()).execute();
         }
@@ -506,6 +524,8 @@ public class MainActivity extends AppCompatActivity implements
             public void onResponse(Call<ForecastResponse> call, Response<ForecastResponse> response) {
                 if (response.isSuccessful()) {
                     mForecastResponse = response.body();
+                    mProgressBar.setVisibility(View.GONE);
+                    mLinearLayout.setVisibility(View.VISIBLE);
                     updateUi();
                 }
                 if (mSwipeRefreshLayout.isRefreshing()) {
@@ -516,6 +536,7 @@ public class MainActivity extends AppCompatActivity implements
             @Override
             public void onFailure(Call<ForecastResponse> call, Throwable t) {
                 Log.d(TAG, t.getMessage());
+                mProgressBar.setVisibility(View.GONE);
                 if (mSwipeRefreshLayout.isRefreshing()) {
                     mSwipeRefreshLayout.setRefreshing(false);
                 }
@@ -627,6 +648,28 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
+    private void showNetworkSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog
+                .Builder(MainActivity.this, R.style.AlertDialog);
+        builder.setTitle(R.string.title_cellular_data_is_turned_off)
+                .setMessage(R.string.message_turn_on_cellular_data)
+                .setPositiveButton(R.string.button_label_settings, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Intent intent = new Intent(Settings.ACTION_WIRELESS_SETTINGS);
+                        startActivity(intent);
+                    }
+                })
+                .setNegativeButton(R.string.button_label_ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                })
+                .create()
+                .show();
+    }
+
     private static class FetchForecastTask extends AsyncTask<Void, Void, ForecastResponse> {
         private ForecastResponse forecastResponse;
         private WeakReference<MainActivity> mWeakReference;
@@ -646,6 +689,7 @@ public class MainActivity extends AppCompatActivity implements
             super.onPreExecute();
             if (mMainActivity != null) {
                 mMainActivity.mProgressBar.setVisibility(View.VISIBLE);
+                mMainActivity.mLinearLayout.setVisibility(View.GONE);
             }
         }
 
@@ -688,6 +732,7 @@ public class MainActivity extends AppCompatActivity implements
             if (mMainActivity != null) {
                 mMainActivity.mForecastResponse = forecastResponse;
                 mMainActivity.mProgressBar.setVisibility(View.GONE);
+                mMainActivity.mLinearLayout.setVisibility(View.VISIBLE);
                 mMainActivity.updateUi();
             }
         }
@@ -708,4 +753,6 @@ public class MainActivity extends AppCompatActivity implements
             }
         }
     }
+
+
 }
