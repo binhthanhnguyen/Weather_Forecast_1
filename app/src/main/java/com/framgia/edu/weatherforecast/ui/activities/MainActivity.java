@@ -1,7 +1,6 @@
 package com.framgia.edu.weatherforecast.ui.activities;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -20,6 +19,7 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -49,6 +49,7 @@ import com.framgia.edu.weatherforecast.service.ServiceGenerator;
 import com.framgia.edu.weatherforecast.ui.adapters.DailyAdapter;
 import com.framgia.edu.weatherforecast.ui.adapters.HourlyAdapter;
 import com.framgia.edu.weatherforecast.util.NetworkUtil;
+import com.framgia.edu.weatherforecast.util.ResourceUtil;
 import com.framgia.edu.weatherforecast.util.SettingsPreferences;
 import com.framgia.edu.weatherforecast.util.Temperature;
 import com.framgia.edu.weatherforecast.util.UnitConverter;
@@ -590,6 +591,9 @@ public class MainActivity extends AppCompatActivity implements
             DataBlock hourlyDataBlock = mForecastResponse.getHourly();
             String timeZone = mForecastResponse.getTimezone();
 
+            mCoordinatorLayout.setBackgroundResource(ResourceUtil
+                    .getBackgroundIdentifier(currentDataPoint.getIcon()));
+
             mTextSummary.setText(currentDataPoint.getSummary());
             mTextTemperature.setText(Temperature.stringForTemperature(currentDataPoint.getTemperature()));
 
@@ -750,6 +754,8 @@ public class MainActivity extends AppCompatActivity implements
             if (resultCode == Constants.RESULT_OK) {
                 String address = resultData.getString(Constants.BUNDLE_ADDRESS);
                 mTextToolbarTitle.setText(address);
+            } else if(resultCode == Constants.RESULT_FAILURE) {
+                mTextToolbarTitle.setText(R.string.title_no_city_found);
             }
         }
     }
