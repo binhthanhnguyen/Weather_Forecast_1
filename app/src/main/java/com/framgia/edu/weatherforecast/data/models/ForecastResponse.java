@@ -13,7 +13,7 @@ public class ForecastResponse {
     @SerializedName("timezone")
     private String mTimezone;
     @SerializedName("offset")
-    private int mOffset;
+    private double mOffset;
     @SerializedName("currently")
     private DataPoint mCurrently;
     @SerializedName("hourly")
@@ -47,11 +47,11 @@ public class ForecastResponse {
         this.mTimezone = timezone;
     }
 
-    public int getOffset() {
+    public double getOffset() {
         return mOffset;
     }
 
-    public void setOffset(int offset) {
+    public void setOffset(double offset) {
         this.mOffset = offset;
     }
 

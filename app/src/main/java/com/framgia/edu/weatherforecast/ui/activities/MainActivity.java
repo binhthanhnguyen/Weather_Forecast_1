@@ -622,7 +622,8 @@ public class MainActivity extends AppCompatActivity implements
             DataPoint todayDataPoint = dailyDataBlock.getData().get(0);
             mHourlyFormatter.setTimeZone(TimeZone.getTimeZone(timeZone));
 
-            mTextTodaySummary.setText(getString(R.string.label_today_colon) + todayDataPoint.getSummary());
+            mTextTodaySummary.setText(String.format(getString(R.string.label_today)
+                    + ": " + todayDataPoint.getSummary()));
             mTextSunrise.setText(mHourlyFormatter.format(new Date(todayDataPoint.getSunriseTime() * 1000L)));
             mTextSunset.setText(mHourlyFormatter.format(new Date(todayDataPoint.getSunsetTime() * 1000L)));
             mTextHumidity.setText(Math.round(currentDataPoint.getHumidity() * 100)
