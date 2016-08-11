@@ -8,6 +8,7 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.ResultReceiver;
+import android.util.Log;
 
 import com.framgia.edu.weatherforecast.R;
 import com.framgia.edu.weatherforecast.data.models.Constants;
@@ -51,6 +52,7 @@ public class FetchAddressIntentService extends IntentService {
         mResultReceiver = intent.getParcelableExtra(EXTRA_RESULT_RECEIVER);
         mLocation = intent.getParcelableExtra(EXTRA_LOCATION);
         List<Address> addresses = null;
+        String cityName = null;
 
         if (mLocation == null) {
             String errorMessage = getString(R.string.error_message_no_location_data_provided);
@@ -62,7 +64,14 @@ public class FetchAddressIntentService extends IntentService {
         try {
             addresses = geocoder.getFromLocation(mLocation.getLatitude(), mLocation.getLongitude(), 1);
             if (addresses != null && !addresses.isEmpty()) {
-                deliverResultToReceiver(Constants.RESULT_OK, addresses.get(0).getLocality());
+                Address address = addresses.get(0);
+                cityName = address.getLocality();
+                if (cityName != null) {
+                    deliverResultToReceiver(Constants.RESULT_OK, cityName);
+                } else  {
+                    int maxAddressLineIndex = addresses.get(0).getMaxAddressLineIndex();
+                    deliverResultToReceiver(Constants.RESULT_OK, address.getAddressLine(maxAddressLineIndex -1));
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -78,12 +87,11 @@ public class FetchAddressIntentService extends IntentService {
             urlBuilder.addQueryParameter(Constants.PARAM_KEY, Constants.GOOGLE_MAP_API_KEY);
             String url = urlBuilder.build().toString();
             Request request = new Request.Builder().url(url).build();
-            String address = null;
             try {
                 Response response = client.newCall(request).execute();
-                address = parseAddress(response);
-                if (address != null) {
-                    deliverResultToReceiver(Constants.RESULT_OK, address);
+                cityName = parseAddress(response);
+                if (cityName != null) {
+                    deliverResultToReceiver(Constants.RESULT_OK, cityName);
                 } else {
                     deliverResultToReceiver(Constants.RESULT_FAILURE,
                             getString(R.string.error_message_no_address_found));

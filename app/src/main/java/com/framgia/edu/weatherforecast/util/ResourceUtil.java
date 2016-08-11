@@ -36,4 +36,29 @@ public class ResourceUtil {
                 return 0;
         }
     }
+
+    public static int getBackgroundIdentifier(String icon) {
+        switch (icon) {
+            case "clear-day" :
+                return R.drawable.bg_clear_day;
+            case "clear-night" :
+                return R.drawable.bg_clear_night;
+            case "rain" :
+                return R.drawable.bg_rain;
+            case "snow" :
+                return R.drawable.bg_snow_day;
+            case "wind" :
+                return R.drawable.bg_wind;
+            case "fog" :
+                return R.drawable.bg_fog;
+            case "cloudy" :
+                return R.drawable.bg_cloudy_day;
+            case "partly-cloudy-day" :
+                return R.drawable.bg_cloudy_day;
+            case "partly-cloudy-night" :
+                return R.drawable.bg_cloudy_night;
+            default:
+                return 0;
+        }
+    }
 }
