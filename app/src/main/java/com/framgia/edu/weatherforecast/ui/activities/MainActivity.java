@@ -54,9 +54,6 @@ import com.framgia.edu.weatherforecast.util.SettingsPreferences;
 import com.framgia.edu.weatherforecast.util.Temperature;
 import com.framgia.edu.weatherforecast.util.UnitConverter;
 import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
-import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
@@ -69,7 +66,6 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResult;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
-import com.google.android.gms.location.places.AutocompleteFilter;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlaceAutocomplete;
 import com.google.android.gms.maps.model.LatLng;
@@ -105,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private CityDAO mCityDAO;
     private List<City> mCities;
-    private City mCurrentCity;
+    private City mSelectedCity;
     private ForecastService mForecastService;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
@@ -229,20 +225,7 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_add) {
-            try {
-                AutocompleteFilter autocompleteFilter = new AutocompleteFilter.Builder().
-                        setTypeFilter(AutocompleteFilter.TYPE_FILTER_CITIES).build();
-                Intent intent = new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_FULLSCREEN)
-                        .setFilter(autocompleteFilter)
-                        .build(this);
-                startActivityForResult(intent, REQUEST_CODE_AUTOCOMPLETE);
-            } catch (GooglePlayServicesRepairableException e) {
-                GoogleApiAvailability.getInstance().getErrorDialog(this, e.getConnectionStatusCode(), 0).show();
-            } catch (GooglePlayServicesNotAvailableException e) {
-                String message = getString(R.string.error_message_google_availability) +
-                        GoogleApiAvailability.getInstance().getErrorString(e.errorCode);
-                Log.e(TAG, message);
-            }
+            openPlaceAutoCompleteActivity();
         }
         return super.onOptionsItemSelected(item);
     }
@@ -250,15 +233,31 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        if (item.getItemId() == R.id.nav_settings) {
-            Intent intent = new Intent(this, SettingsActivity.class);
-            startActivityForResult(intent, REQUEST_CODE_SETTINGS);
+        int itemId = item.getItemId();
+        switch (itemId) {
+            case R.id.nav_settings :
+                Intent intent = new Intent(this, SettingsActivity.class);
+                startActivityForResult(intent, REQUEST_CODE_SETTINGS);
+                break;
+            case R.id.nav_current_location :
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED
+                        && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    requestLocationPermission();
+                } else {
+                    changeLocationSettings();
+                    mSelectedCity = null;
+                }
+                break;
+            default:
+                break;
         }
 
         for (City city : mCities) {
-            if (item.getItemId() == city.getId()) {
+            if (itemId == city.getId()) {
                 mPlace = null;
-                mCurrentCity = city;
+                mSelectedCity = city;
                 LatLng latLng = new LatLng(city.getLatitude(), city.getLongitude());
                 mProgressBar.setVisibility(View.VISIBLE);
                 mLinearLayout.setVisibility(View.GONE);
@@ -276,19 +275,23 @@ public class MainActivity extends AppCompatActivity implements
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_CODE_AUTOCOMPLETE) {
             if (resultCode == RESULT_OK) {
-                mPlace = PlaceAutocomplete.getPlace(this, data);
-                String cityName = (String) mPlace.getName();
-                mTextToolbarTitle.setText(cityName);
-                LatLng latLng = mPlace.getLatLng();
-                mProgressBar.setVisibility(View.VISIBLE);
-                mLinearLayout.setVisibility(View.GONE);
-                fetchForecastAsync(latLng);
-                if (mCityDAO.insert(new City(cityName, latLng.latitude, latLng.longitude))) {
-                    mCities = mCityDAO.getAllCities();
-                    City lastCity = mCities.get(mCities.size() -1);
-                    addLocationMenuItem(mMenu, lastCity);
-                } else {
-                    Toast.makeText(this, R.string.error_message_can_not_add_location, Toast.LENGTH_LONG).show();
+                Bundle bundle = data.getExtras();
+                if (bundle != null) {
+                    String cityName = bundle.getString(PlaceAutocompleteActivity.BUNDLE_CITY_NAME);
+                    mTextToolbarTitle.setText(cityName);
+                    Double latitude = bundle.getDouble(PlaceAutocompleteActivity.BUNDLE_LATITUDE);
+                    Double longitude = bundle.getDouble(PlaceAutocompleteActivity.BUNDLE_LONGITUDE);
+                    LatLng latLng = new LatLng(latitude, longitude);
+                    mProgressBar.setVisibility(View.VISIBLE);
+                    mLinearLayout.setVisibility(View.GONE);
+                    fetchForecastAsync(latLng);
+                    if (mCityDAO.insert(new City(cityName, latLng.latitude, latLng.longitude))) {
+                        mCities = mCityDAO.getAllCities();
+                        City lastCity = mCities.get(mCities.size() -1);
+                        addLocationMenuItem(mMenu, lastCity);
+                    } else {
+                        Toast.makeText(this, R.string.error_message_can_not_add_location, Toast.LENGTH_LONG).show();
+                    }
                 }
 
             } else if (resultCode == PlaceAutocomplete.RESULT_ERROR) {
@@ -402,6 +405,11 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
+    private void openPlaceAutoCompleteActivity() {
+        Intent intent = new Intent(this, PlaceAutocompleteActivity.class);
+        startActivityForResult(intent, REQUEST_CODE_AUTOCOMPLETE);
+    }
+
     private void setupSwipeRefreshLayout(final SwipeRefreshLayout swipeRefreshLayout) {
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -416,8 +424,8 @@ public class MainActivity extends AppCompatActivity implements
                     return;
                 }
 
-                if (mCurrentCity != null) {
-                    fetchForecastAsync(new LatLng(mCurrentCity.getLatitude(), mCurrentCity.getLongitude()));
+                if (mSelectedCity != null) {
+                    fetchForecastAsync(new LatLng(mSelectedCity.getLatitude(), mSelectedCity.getLongitude()));
                     return;
                 }
 
@@ -596,10 +604,6 @@ public class MainActivity extends AppCompatActivity implements
 
             mTextSummary.setText(currentDataPoint.getSummary());
             mTextTemperature.setText(Temperature.stringForTemperature(currentDataPoint.getTemperature()));
-
-            mDateFormatter.setTimeZone(TimeZone.getTimeZone(timeZone));
-            Date dateTime = new Date(currentDataPoint.getTime() * 1000L);
-            mTextToday.setText(mDateFormatter.format(dateTime));
 
             if (mDailyAdapter == null) {
                 mDailyAdapter = new DailyAdapter(this, dailyDataBlock, timeZone);

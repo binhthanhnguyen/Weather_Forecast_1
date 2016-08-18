@@ -34,6 +34,12 @@
 
         </activity>
 
+        <activity android:name=".ui.activities.PlaceAutocompleteActivity"
+                  android:theme="@style/AppTheme.NoActionBar"
+                  android:screenOrientation="portrait">
+
+        </activity>
+
         <service android:name=".service.FetchAddressIntentService"
             android:exported="false" />
 

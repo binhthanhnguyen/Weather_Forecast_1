@@ -12,7 +12,8 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context=".ui.activities.MainActivity"
-    tools:showIn="@layout/app_bar_main">
+    tools:showIn="@layout/app_bar_main"
+    android:alpha="0.8">
 
     <TextView
         android:id="@+id/text_summary"
@@ -39,8 +40,6 @@
             android:id="@+id/text_today"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="@dimen/margin_tiny"
-            android:layout_marginRight="@dimen/margin_tiny"
             android:textStyle="bold" />
 
         <TextView
